@@ -1,6 +1,6 @@
 package com.todo.backend;
 
-import java.util.Date;
+import java.time.Instant;
 
 public class ToDo {
     // #region ################################ PROPERTIES
@@ -26,7 +26,7 @@ public class ToDo {
     /**
      * Due date if any. It serves not purpose other than 'importance' colors.
      */
-    private Date due_date = null;
+    private Instant due_date = null;
 
     /**
      * One of "LOW", "MEDIUM" or "HIGH". Required for filtering items.
@@ -42,12 +42,12 @@ public class ToDo {
      * Date when this item was marked as done. It re-assings only when undone ->
      * done.
      */
-    private Date done_date = null;
+    private Instant done_date = null;
 
     /**
      * Date when the item was originally created. For performance-checking purposes.
      */
-    final private Date creation_date;
+    final private Instant creation_date;
 
     /**
      * Keeps track of ID's auto increment so it always is unique.
@@ -56,12 +56,12 @@ public class ToDo {
     // #endregion
 
     // #region ################################ CONSTRUCTOR
-    public ToDo(String text, Priority priority, Date due_date) {
+    public ToDo(String text, Priority priority, Instant due_date) {
         this.id = AUTO_INCREMENT;
         this.text = text;
         this.priority = priority;
         this.due_date = due_date;
-        this.creation_date = new Date();
+        this.creation_date = Instant.now();
         AUTO_INCREMENT++;
     }
     // #endregion
@@ -79,15 +79,15 @@ public class ToDo {
         return priority;
     }
 
-    public Date getDue_date() {
+    public Instant getDue_date() {
         return due_date;
     }
 
-    public Date getDone_date() {
+    public Instant getDone_date() {
         return done_date;
     }
 
-    public Date getCreation_date() {
+    public Instant getCreation_date() {
         return creation_date;
     }
 
@@ -113,12 +113,12 @@ public class ToDo {
 
     public void setDone(boolean done) {
         if (done ^ this.done)
-            this.done_date = done ? new Date() : null;
+            this.done_date = done ? Instant.now() : null;
 
         this.done = done;
     }
 
-    public void setDue_date(Date due_date) {
+    public void setDue_date(Instant due_date) {
         this.due_date = due_date;
     }
     // #endregion

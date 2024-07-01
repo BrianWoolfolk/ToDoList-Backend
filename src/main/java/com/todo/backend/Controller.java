@@ -2,6 +2,7 @@ package com.todo.backend;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,11 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.todo.backend.ToDo.Priority;
 
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@CrossOrigin(origins = "*")
 @RestController
 public class Controller {
 
@@ -69,7 +71,7 @@ public class Controller {
             }
         }
 
-        int maxpage = (int) Math.max(Math.ceil(filtered.size() / 10), 1);
+        int maxpage = (int) Math.max(Math.ceil(filtered.size() / 10f), 1);
         int page = (int) Math.min(Math.max(pag, 1), maxpage);
 
         return (new GETResponse(
@@ -130,7 +132,7 @@ public class Controller {
                     if (due_date.equals("none"))
                         todo.setDue_date(null);
                     else
-                        todo.setDue_date(new SimpleDateFormat(due_date).parse(due_date));
+                        todo.setDue_date(Instant.parse(due_date));
                 }
 
                 return new ResponseEntity<>("Item modified", HttpStatus.OK);

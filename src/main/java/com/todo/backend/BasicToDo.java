@@ -1,6 +1,6 @@
 package com.todo.backend;
 
-import java.util.Date;
+import java.time.Instant;
 
 import com.todo.backend.ToDo.Priority;
 
@@ -11,7 +11,7 @@ public class BasicToDo {
     // #region ################################ PROPERTIES
     private String text;
     private Priority priority;
-    private Date due_date;
+    private Instant due_date;
     // #endregion
 
     // #region ################################ GETTERS
@@ -23,7 +23,7 @@ public class BasicToDo {
         return priority;
     }
 
-    public Date getDue_date() {
+    public Instant getDue_date() {
         return due_date;
     }
     // #endregion
@@ -41,7 +41,7 @@ public class BasicToDo {
         this.priority = priority;
     }
 
-    public void setDue_date(Date due_date) {
+    public void setDue_date(Instant due_date) {
         this.due_date = due_date;
     }
     // #endregion
