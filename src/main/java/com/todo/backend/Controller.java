@@ -16,6 +16,8 @@ import com.todo.backend.ToDo.Priority;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -54,10 +56,13 @@ public class Controller {
             @RequestParam(defaultValue = "1") int pag,
             @RequestParam(required = false) Boolean done,
             @RequestParam(required = false) String text,
-            @RequestParam(required = false) Priority priority) {
+            @RequestParam(required = false) Priority priority,
+            @RequestParam(required = false) Boolean sortPriority,
+            @RequestParam(required = false) Boolean sortDueDate) {
         // Return variable
         List<ToDo> filtered = new ArrayList<>(DB.subList(0, DB.size()));
 
+        // FILTER (IF ANY)
         if (done != null || text != null || priority != null) {
             filtered = new ArrayList<>(); // CLEAR ALL
 
@@ -71,6 +76,42 @@ public class Controller {
 
                 filtered.add(item); // FILTERS PASSED
             }
+        }
+
+        // SORT BY (IF ANY)
+        if (sortDueDate != null || sortPriority != null) {
+            Collections.sort(filtered, new Comparator<ToDo>() {
+                @Override
+                public int compare(final ToDo item1, final ToDo item2) {
+                    int diff = 0;
+                    if (sortPriority != null) {
+                        if (sortPriority)
+                            diff = item1.getPriority().compareTo(item2.getPriority());
+                        else
+                            diff = item2.getPriority().compareTo(item1.getPriority());
+                    }
+
+                    if (sortDueDate != null && diff == 0) {
+                        Instant d1 = item1.getDue_date();
+                        Instant d2 = item2.getDue_date();
+
+                        if (d1 == null && d2 == null)
+                            return 0;
+
+                        if (sortDueDate) {
+                            diff = d1 == null ? 1
+                                    : (d2 == null ? -1
+                                            : item1.getDue_date().compareTo(item2.getDue_date()));
+                        } else {
+                            diff = d1 == null ? -1
+                                    : (d2 == null ? 1
+                                            : item2.getDue_date().compareTo(item1.getDue_date()));
+                        }
+                    }
+
+                    return diff;
+                }
+            });
         }
 
         LastMetrics lm = this.metrics.calculate(filtered);
