@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.todo.backend.Metrics.LastMetrics;
 import com.todo.backend.ToDo.Priority;
 
 import java.text.ParseException;
@@ -24,6 +25,7 @@ public class Controller {
 
     // #region ################################ DATA BASE
     private List<ToDo> DB = new ArrayList<>();
+    private Metrics metrics = new Metrics();
     // #endregion
 
     // #region ################################ HOME
@@ -71,13 +73,13 @@ public class Controller {
             }
         }
 
+        LastMetrics lm = this.metrics.calculate(filtered);
+
         int maxpage = (int) Math.max(Math.ceil(filtered.size() / 10f), 1);
         int page = (int) Math.min(Math.max(pag, 1), maxpage);
+        List<ToDo> slice = filtered.subList(10 * (page - 1), Math.min(10 * page, filtered.size()));
 
-        return (new GETResponse(
-                filtered.subList(10 * (page - 1), Math.min(10 * page, filtered.size())),
-                page,
-                maxpage));
+        return (new GETResponse(slice, page, maxpage, lm));
     }
 
     @RequestMapping(method = { RequestMethod.GET }, value = { "/todos/{id}" })
