@@ -247,6 +247,23 @@ public class Controller {
     }
     // #endregion
 
+    // #region ################################ DELETE
+    @RequestMapping(method = { RequestMethod.DELETE }, value = { "/todos/{id}/delete" })
+    public ResponseEntity<String> deleteToDo(@PathVariable int id) {
+        if (id < 0)
+            return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
+
+        boolean found = DB.removeIf(todo -> todo.getId() == id);
+
+        this.metrics.needsRecalculate();
+        this.lastResponse = null; // FORCE RECALCULATE
+
+        if (found)
+            return new ResponseEntity<>("Deleted", HttpStatus.OK);
+        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+    }
+    // #endregion
+
     /**
      * Shortcut to save previous Search Params and see if its the same or not
      */
