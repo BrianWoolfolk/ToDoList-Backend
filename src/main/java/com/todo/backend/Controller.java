@@ -28,25 +28,62 @@ public class Controller {
     // #region ################################ DATA BASE
     private List<ToDo> DB = new ArrayList<>();
     private Metrics metrics = new Metrics();
+
+    private SearchParams previousParams = new SearchParams();
+    private List<ToDo> lastResponse = null;
     // #endregion
 
-    // #region ################################ HOME
-    @RequestMapping(method = { RequestMethod.GET }, value = { "/" })
-    public String home() {
-        String str = "<html><body>"
-                + "<h2>Menu:</h2><ul>"
-                + "<li><b>GET todos/</b>: retrieves all, with pagination and filters <br/>"
-                + "<code>pag: >1, filter_done: boolean?, filter_text: string?, filter_priority: Priority?</code></li>"
-                + "<li><b>POST todos/</b>: creates a new ToDo item <br/>"
-                + "<code>text: string, priority: Priority, due_date: ISOstring?</code></li>"
-                + "<li><b>PUT todos/{id}/</b>: identical to previous, but modifies an item by its 'id' <br/>"
-                + "<code>text: string, priority: Priority, due_date: ISOstring?</code></li>"
-                + "<li><b>POST todos/{id}/done</b>: marks as DONE an specific item by its 'id' <br/>"
-                + "<code>none</code></li>"
-                + "<li><b>PUT todos/{id}/undone</b>: marks as UNDONE an specific item by its 'id' <br/>"
-                + "<code>none</code></li>"
-                + "</ul></h2></body></html>";
-        return str;
+    // #region ################################ FILTER & SORTING
+    private List<ToDo> filter(Boolean done, String text, Priority priority) {
+        List<ToDo> filtered = new ArrayList<>(); // CLEAR ALL
+
+        for (ToDo item : DB) {
+            if (done != null && item.getDone() != done)
+                continue;
+            if (priority != null && item.getPriority() != priority)
+                continue;
+            if (text != null && !item.getText().contains(text))
+                continue;
+
+            filtered.add(item); // FILTERS PASSED
+        }
+
+        return filtered;
+    }
+
+    private void sortList(List<ToDo> filtered, Boolean sortPriority, Boolean sortDueDate) {
+        Collections.sort(filtered, new Comparator<ToDo>() {
+            @Override
+            public int compare(final ToDo item1, final ToDo item2) {
+                int diff = 0;
+                if (sortPriority != null) {
+                    if (sortPriority)
+                        diff = item1.getPriority().compareTo(item2.getPriority());
+                    else
+                        diff = item2.getPriority().compareTo(item1.getPriority());
+                }
+
+                if (sortDueDate != null && diff == 0) {
+                    Instant d1 = item1.getDue_date();
+                    Instant d2 = item2.getDue_date();
+
+                    if (d1 == null && d2 == null)
+                        return 0;
+
+                    if (sortDueDate) {
+                        diff = d1 == null ? 1
+                                : (d2 == null ? -1
+                                        : item1.getDue_date().compareTo(item2.getDue_date()));
+                    } else {
+                        diff = d1 == null ? -1
+                                : (d2 == null ? 1
+                                        : item2.getDue_date().compareTo(item1.getDue_date()));
+                    }
+                }
+
+                return diff;
+            }
+        });
     }
     // #endregion
 
@@ -59,62 +96,32 @@ public class Controller {
             @RequestParam(required = false) Priority priority,
             @RequestParam(required = false) Boolean sortPriority,
             @RequestParam(required = false) Boolean sortDueDate) {
-        // Return variable
-        List<ToDo> filtered = new ArrayList<>(DB.subList(0, DB.size()));
+        // TO AVOID UNNECESARY PROCESSES, WE STORE CACHE AND CHECK FOR CHANGES
+        List<ToDo> filtered = null;
         LastMetrics lm = this.metrics.calculate(this.DB); // CHECK METRICS AGAIN
+        Boolean isSame = this.previousParams.isSameAsPrevious(done, text, priority, sortPriority, sortDueDate);
 
-        // FILTER (IF ANY)
-        if (done != null || text != null || priority != null) {
-            filtered = new ArrayList<>(); // CLEAR ALL
+        // SAME PARAMS, AND ALREADY AN ANSWER; SO TAKE BACK THE ANSWER
+        if (isSame && lastResponse != null) {
+            filtered = lastResponse;
+        } else {
+            // DIFFERENT PARAMS OR THERE'S NOT A PREVIOUS
+            filtered = new ArrayList<>(DB.subList(0, DB.size()));
 
-            for (ToDo item : DB) {
-                if (done != null && item.getDone() != done)
-                    continue;
-                if (priority != null && item.getPriority() != priority)
-                    continue;
-                if (text != null && !item.getText().contains(text))
-                    continue;
-
-                filtered.add(item); // FILTERS PASSED
+            // FILTER (IF ANY)
+            if (done != null || text != null || priority != null) {
+                filtered = this.filter(done, text, priority);
             }
+
+            // SORT BY (IF ANY)
+            if (sortDueDate != null || sortPriority != null) {
+                sortList(filtered, sortPriority, sortDueDate);
+            }
+
+            lastResponse = filtered; // SAVE THE LIST FOR NEXT
         }
 
-        // SORT BY (IF ANY)
-        if (sortDueDate != null || sortPriority != null) {
-            Collections.sort(filtered, new Comparator<ToDo>() {
-                @Override
-                public int compare(final ToDo item1, final ToDo item2) {
-                    int diff = 0;
-                    if (sortPriority != null) {
-                        if (sortPriority)
-                            diff = item1.getPriority().compareTo(item2.getPriority());
-                        else
-                            diff = item2.getPriority().compareTo(item1.getPriority());
-                    }
-
-                    if (sortDueDate != null && diff == 0) {
-                        Instant d1 = item1.getDue_date();
-                        Instant d2 = item2.getDue_date();
-
-                        if (d1 == null && d2 == null)
-                            return 0;
-
-                        if (sortDueDate) {
-                            diff = d1 == null ? 1
-                                    : (d2 == null ? -1
-                                            : item1.getDue_date().compareTo(item2.getDue_date()));
-                        } else {
-                            diff = d1 == null ? -1
-                                    : (d2 == null ? 1
-                                            : item2.getDue_date().compareTo(item1.getDue_date()));
-                        }
-                    }
-
-                    return diff;
-                }
-            });
-        }
-
+        // EVEN IF WE GOT THE SAME ANSWER, WE CAN SEND A DIFFERENT PAGE TO CLIENT
         int maxpage = (int) Math.max(Math.ceil(filtered.size() / 10f), 1);
         int page = (int) Math.min(Math.max(pag, 1), maxpage);
         List<ToDo> slice = filtered.subList(10 * (page - 1), Math.min(10 * page, filtered.size()));
@@ -149,6 +156,7 @@ public class Controller {
             return new ResponseEntity<>("Server error", HttpStatus.INTERNAL_SERVER_ERROR);
 
         this.metrics.needsRecalculate();
+        this.lastResponse = null; // FORCE RECALCULATE
         return new ResponseEntity<>("Added new ToDo item", HttpStatus.CREATED);
     }
 
@@ -179,6 +187,7 @@ public class Controller {
                 }
 
                 this.metrics.needsRecalculate();
+                this.lastResponse = null; // FORCE RECALCULATE
                 return new ResponseEntity<>("Item modified", HttpStatus.OK);
             }
         }
@@ -198,6 +207,7 @@ public class Controller {
                 toDo.setDone(true);
 
                 this.metrics.needsRecalculate();
+                this.lastResponse = null; // FORCE RECALCULATE
                 return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
             }
         }
@@ -215,6 +225,7 @@ public class Controller {
                 toDo.setDone(false);
 
                 this.metrics.needsRecalculate();
+                this.lastResponse = null; // FORCE RECALCULATE
                 return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
             }
         }
@@ -222,4 +233,37 @@ public class Controller {
         return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
     }
     // #endregion
+
+    /**
+     * Shortcut to save previous Search Params and see if its the same or not
+     */
+    public class SearchParams {
+        private Boolean done = null;
+        private String text = null;
+        private Priority priority = null;
+        private Boolean sortPriority = null;
+        private Boolean sortDueDate = null;
+
+        public Boolean isSameAsPrevious(
+                Boolean done,
+                String text,
+                Priority priority,
+                Boolean sortPriority,
+                Boolean sortDueDate) {
+            Boolean check = true;
+
+            if (done != this.done || text != this.text || priority != this.priority
+                    || sortPriority != this.sortPriority || sortDueDate != this.sortDueDate) {
+                check = false;
+            }
+
+            this.done = done;
+            this.text = text;
+            this.priority = priority;
+            this.sortPriority = sortPriority;
+            this.sortDueDate = sortDueDate;
+
+            return check;
+        }
+    }
 }
