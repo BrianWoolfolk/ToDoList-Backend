@@ -34,6 +34,39 @@ public class Controller {
     // #endregion
 
     // #region ################################ FILTER & SORTING
+    private ResponseEntity<String> toggleDoneUndone(int id, Integer inPage, boolean markedAs) {
+        boolean found = false;
+
+        if (inPage == null) {
+            for (ToDo toDo : DB) {
+                if (toDo.getId() == id) {
+                    toDo.setDone(markedAs);
+                    found = true;
+                    break;
+                }
+            }
+        } else {
+            // IF inPage EXISTS, WE TOGGLE ALL FROM THE LAST RESPONSE (IF ANY)
+            List<ToDo> aux = this.lastResponse == null ? this.DB : this.lastResponse;
+
+            int maxpage = (int) Math.max(Math.ceil(aux.size() / 10f), 1);
+            int page = (int) Math.min(Math.max(inPage, 1), maxpage);
+            List<ToDo> slice = aux.subList(10 * (page - 1), Math.min(10 * page, aux.size()));
+
+            for (ToDo toDo : slice)
+                toDo.setDone(markedAs);
+
+            found = true;
+        }
+
+        this.metrics.needsRecalculate();
+        this.lastResponse = null; // FORCE RECALCULATE
+
+        if (found)
+            return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
+        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+    }
+
     private List<ToDo> filter(Boolean done, String text, Priority priority) {
         List<ToDo> filtered = new ArrayList<>(); // CLEAR ALL
 
@@ -106,7 +139,7 @@ public class Controller {
             filtered = lastResponse;
         } else {
             // DIFFERENT PARAMS OR THERE'S NOT A PREVIOUS
-            filtered = new ArrayList<>(DB.subList(0, DB.size()));
+            filtered = new ArrayList<>(DB);
 
             // FILTER (IF ANY)
             if (done != null || text != null || priority != null) {
@@ -198,39 +231,19 @@ public class Controller {
 
     // #region ################################ DONE/UNDONE
     @RequestMapping(method = { RequestMethod.POST }, value = { "/todos/{id}/done" })
-    public ResponseEntity<String> markDone(@PathVariable int id) {
+    public ResponseEntity<String> markDone(@PathVariable int id, @RequestParam(required = false) Integer inPage) {
         if (id < 0)
             return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
 
-        for (ToDo toDo : DB) {
-            if (toDo.getId() == id) {
-                toDo.setDone(true);
-
-                this.metrics.needsRecalculate();
-                this.lastResponse = null; // FORCE RECALCULATE
-                return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
-            }
-        }
-
-        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+        return this.toggleDoneUndone(id, inPage, true);
     }
 
     @RequestMapping(method = { RequestMethod.PUT }, value = { "/todos/{id}/undone" })
-    public ResponseEntity<String> markUndone(@PathVariable int id) {
+    public ResponseEntity<String> markUndone(@PathVariable int id, @RequestParam(required = false) Integer inPage) {
         if (id < 0)
             return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
 
-        for (ToDo toDo : DB) {
-            if (toDo.getId() == id) {
-                toDo.setDone(false);
-
-                this.metrics.needsRecalculate();
-                this.lastResponse = null; // FORCE RECALCULATE
-                return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
-            }
-        }
-
-        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+        return this.toggleDoneUndone(id, inPage, false);
     }
     // #endregion
 
