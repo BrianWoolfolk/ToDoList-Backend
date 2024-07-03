@@ -13,6 +13,7 @@ public class Metrics {
     private PriorityCounter low = new PriorityCounter();
 
     private LastMetrics values = new LastMetrics();
+    private Boolean updated = false;
     // #endregion
 
     // #region ################################ GETTERS
@@ -35,6 +36,9 @@ public class Metrics {
 
     // #region ################################ CALCULATE
     public LastMetrics calculate(List<ToDo> DB) {
+        if (updated)
+            return this.values;
+
         high.restart();
         mid.restart();
         low.restart();
@@ -96,7 +100,12 @@ public class Metrics {
             this.values.total_avg = total_sum / done_count;
         this.values.total_pend = this.values.total_avg * pending_counter;
 
+        this.updated = true;
         return this.values;
+    }
+
+    public void needsRecalculate() {
+        this.updated = false;
     }
     // #endregion
 

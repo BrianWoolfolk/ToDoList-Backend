@@ -61,6 +61,7 @@ public class Controller {
             @RequestParam(required = false) Boolean sortDueDate) {
         // Return variable
         List<ToDo> filtered = new ArrayList<>(DB.subList(0, DB.size()));
+        LastMetrics lm = this.metrics.calculate(this.DB); // CHECK METRICS AGAIN
 
         // FILTER (IF ANY)
         if (done != null || text != null || priority != null) {
@@ -114,8 +115,6 @@ public class Controller {
             });
         }
 
-        LastMetrics lm = this.metrics.calculate(filtered);
-
         int maxpage = (int) Math.max(Math.ceil(filtered.size() / 10f), 1);
         int page = (int) Math.min(Math.max(pag, 1), maxpage);
         List<ToDo> slice = filtered.subList(10 * (page - 1), Math.min(10 * page, filtered.size()));
@@ -149,6 +148,7 @@ public class Controller {
         if (!stat)
             return new ResponseEntity<>("Server error", HttpStatus.INTERNAL_SERVER_ERROR);
 
+        this.metrics.needsRecalculate();
         return new ResponseEntity<>("Added new ToDo item", HttpStatus.CREATED);
     }
 
@@ -178,6 +178,7 @@ public class Controller {
                         todo.setDue_date(Instant.parse(due_date));
                 }
 
+                this.metrics.needsRecalculate();
                 return new ResponseEntity<>("Item modified", HttpStatus.OK);
             }
         }
@@ -195,6 +196,8 @@ public class Controller {
         for (ToDo toDo : DB) {
             if (toDo.getId() == id) {
                 toDo.setDone(true);
+
+                this.metrics.needsRecalculate();
                 return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
             }
         }
@@ -210,6 +213,8 @@ public class Controller {
         for (ToDo toDo : DB) {
             if (toDo.getId() == id) {
                 toDo.setDone(false);
+
+                this.metrics.needsRecalculate();
                 return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
             }
         }
