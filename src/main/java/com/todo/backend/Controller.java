@@ -179,6 +179,9 @@ public class Controller {
     // #region ################################ POST
     @RequestMapping(method = { RequestMethod.POST }, value = { "/todos" })
     public ResponseEntity<String> createToDo(@RequestBody BasicToDo toDo) {
+        if (toDo.getText().length() <= 0 || toDo.getText().length() > 120)
+            return new ResponseEntity<>("Text length must be 120 or lower", HttpStatus.BAD_REQUEST);
+
         boolean stat = DB.add(
                 new ToDo(
                         toDo.getText(),
