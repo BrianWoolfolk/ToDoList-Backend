@@ -48,7 +48,7 @@ public class Metrics {
             // ALREADY DONE TASKS
             if (done_date != null) {
                 Instant creation_date = toDo.getCreation_date();
-                long diff = ChronoUnit.MINUTES.between(creation_date, done_date);
+                long diff = ChronoUnit.SECONDS.between(creation_date, done_date);
 
                 switch (toDo.getPriority()) {
                     case Priority.HIGH:
