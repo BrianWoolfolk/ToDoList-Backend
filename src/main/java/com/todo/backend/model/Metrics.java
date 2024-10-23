@@ -4,7 +4,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import com.todo.backend.ToDo.Priority;
+import com.todo.backend.model.ToDo;
+import com.todo.backend.model.ToDo.Priority;
 
 public class Metrics {
     // #region ################################ PROPERTIES

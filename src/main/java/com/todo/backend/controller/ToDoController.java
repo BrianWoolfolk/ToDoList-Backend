@@ -1,4 +1,4 @@
-package com.todo.backend;
+package com.todo.backend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,8 +10,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.todo.backend.BasicToDo;
+import com.todo.backend.GETResponse;
+import com.todo.backend.Metrics;
 import com.todo.backend.Metrics.LastMetrics;
-import com.todo.backend.ToDo.Priority;
+import com.todo.backend.model.ToDo;
+import com.todo.backend.model.ToDo.Priority;
 
 import java.text.ParseException;
 import java.time.Instant;
@@ -23,7 +27,7 @@ import java.util.Map;
 
 @CrossOrigin(origins = "*")
 @RestController
-public class Controller {
+public class ToDoController {
 
     // #region ################################ DATA BASE
     private List<ToDo> DB = new ArrayList<>();

@@ -2,7 +2,7 @@ package com.todo.backend;
 
 import java.time.Instant;
 
-import com.todo.backend.ToDo.Priority;
+import com.todo.backend.model.ToDo.Priority;
 
 /**
  * Basic Properties for Create and Update ToDo items.
