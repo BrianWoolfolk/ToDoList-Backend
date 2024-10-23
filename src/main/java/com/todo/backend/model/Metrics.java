@@ -1,187 +1,86 @@
-package com.todo.backend;
+package com.todo.backend.model;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-import com.todo.backend.model.ToDo;
-import com.todo.backend.model.ToDo.Priority;
-
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class Metrics {
-    // #region ################################ PROPERTIES
     private PriorityCounter high = new PriorityCounter();
     private PriorityCounter mid = new PriorityCounter();
     private PriorityCounter low = new PriorityCounter();
-
     private LastMetrics values = new LastMetrics();
-    private Boolean updated = false;
-    // #endregion
 
-    // #region ################################ GETTERS
-    public PriorityCounter getHigh() {
-        return high;
+    public void calculateFinalValues() {
+        high.calculate();
+        mid.calculate();
+        low.calculate();
+
+        values.highAvg = high.getAverage();
+        values.highPend = high.getPendingValue();
+        values.midAvg = mid.getAverage();
+        values.midPend = mid.getPendingValue();
+        values.lowAvg = low.getAverage();
+        values.lowPend = low.getPendingValue();
+
+        int doneCount = high.getDoneCounter() + mid.getDoneCounter() + low.getDoneCounter();
+        int pendingCounter = high.getPending() + mid.getPending() + low.getPending();
+        long totalSum = high.getSum() + mid.getSum() + low.getSum();
+
+        values.totalAvg = doneCount > 0 ? (double) totalSum / doneCount : 0;
+        values.totalPend = values.totalAvg * pendingCounter;
     }
 
-    public PriorityCounter getMid() {
-        return mid;
-    }
-
-    public PriorityCounter getLow() {
-        return low;
-    }
-
-    public LastMetrics getValues() {
-        return this.values;
-    }
-    // #endregion
-
-    // #region ################################ CALCULATE
-    public LastMetrics calculate(List<ToDo> DB) {
-        if (updated)
-            return this.values;
-
-        high.restart();
-        mid.restart();
-        low.restart();
-
-        for (ToDo toDo : DB) {
-            Instant done_date = toDo.getDone_date();
-            // ALREADY DONE TASKS
-            if (done_date != null) {
-                Instant creation_date = toDo.getCreation_date();
-                long diff = ChronoUnit.SECONDS.between(creation_date, done_date);
-
-                switch (toDo.getPriority()) {
-                    case Priority.HIGH:
-                        high.addsum(diff);
-                        break;
-                    case Priority.MEDIUM:
-                        mid.addsum(diff);
-                        break;
-                    case Priority.LOW:
-                        low.addsum(diff);
-                        break;
-                    default:
-                        break;
-                }
-
-            } else {
-                // PENDING TASKS
-                switch (toDo.getPriority()) {
-                    case Priority.HIGH:
-                        high.addpending();
-                        break;
-                    case Priority.MEDIUM:
-                        mid.addpending();
-                        break;
-                    case Priority.LOW:
-                        low.addpending();
-                        break;
-                    default:
-                        break;
-                }
-            }
-        }
-
-        this.values.high_avg = high.average();
-        this.values.high_pend = this.values.high_avg * high.getPending();
-
-        this.values.mid_avg = mid.average();
-        this.values.mid_pend = this.values.mid_avg * mid.getPending();
-
-        this.values.low_avg = low.average();
-        this.values.low_pend = this.values.low_avg * low.getPending();
-
-        int done_count = high.getDoneCounter() + mid.getDoneCounter() + low.getDoneCounter();
-        int pending_counter = high.getPending() + mid.getPending() + low.getPending();
-        long total_sum = high.getSum() + mid.getSum() + low.getSum();
-
-        this.values.total_avg = 0;
-        if (done_count > 0)
-            this.values.total_avg = total_sum / done_count;
-        this.values.total_pend = this.values.total_avg * pending_counter;
-
-        this.updated = true;
-        return this.values;
-    }
-
-    public void needsRecalculate() {
-        this.updated = false;
-    }
-    // #endregion
-
-    // #region ################################ PRIORITY COUNTER
-    /**
-     * PriorityCounter
-     */
-    public class PriorityCounter {
-        // ################################ PROPERTIES
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PriorityCounter {
         private long sum = 0;
-        private int done_counter = 0;
-        private int pending_counter = 0;
+        private int doneCounter = 0;
+        private int pendingCounter = 0;
+        private double average = 0;
+        private double pendingValue = 0;
 
-        // ################################ CALCULATE & PROCESSING
         public void restart() {
             this.sum = 0;
-            this.done_counter = 0;
-            this.pending_counter = 0;
+            this.doneCounter = 0;
+            this.pendingCounter = 0;
+            this.average = 0;
+            this.pendingValue = 0;
         }
 
-        public void addsum(long diff) {
+        public void addSum(long diff) {
             this.sum += diff;
-            this.done_counter++;
+            this.doneCounter++;
         }
 
-        public void addpending() {
-            this.pending_counter++;
+        public void addPending() {
+            this.pendingCounter++;
         }
 
-        public double average() {
-            double avg = 0;
-            if (this.done_counter > 0)
-                avg = this.sum / this.done_counter;
-
-            return avg;
-        }
-
-        // ################################ GETTERS
-        public int getPending() {
-            return this.pending_counter;
-        }
-
-        public long getSum() {
-            return this.sum;
-        }
-
-        public int getDoneCounter() {
-            return this.done_counter;
-        }
-
-        /**
-         * String Method
-         */
-        public String toString() {
-            StringBuilder str = new StringBuilder();
-            str.append("Sum: ").append(this.sum).append(", Done Count: ").append(this.done_counter)
-                    .append(", Pending Count: ").append(this.pending_counter);
-            return str.toString();
+        public void calculate() {
+            this.average = doneCounter > 0 ? (double) sum / doneCounter : 0;
+            this.pendingValue = this.average * pendingCounter;
         }
     }
-    // #endregion
 
-    // #region ################################ LAST METRICS
-    /**
-     * LastMetrics quick wrapper
-     */
-    public class LastMetrics {
-        public double high_avg = 0;
-        public double high_pend = 0;
-        public double mid_avg = 0;
-        public double mid_pend = 0;
-        public double low_avg = 0;
-        public double low_pend = 0;
-        public double total_avg = 0;
-        public double total_pend = 0;
+    @Getter
+    @Setter
+    @NoArgsContructor
+    @AllArgsConstructor
+    public static class LastMetrics {
+        public double highAvg = 0;
+        public double highPend = 0;
+        public double midAvg = 0;
+        public double midPend = 0;
+        public double lowAvg = 0;
+        public double lowPend = 0;
+        public double totalAvg = 0;
+        public double totalPend = 0;
     }
-    // #endregion
 }
