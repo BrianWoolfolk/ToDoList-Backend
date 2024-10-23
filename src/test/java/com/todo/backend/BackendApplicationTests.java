@@ -6,7 +6,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.todo.backend.controller.ToDoController;
-import com.todo.backend.model.BasicToDo;
+import com.todo.backend.dto.ToDoDTO;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,11 +31,11 @@ public class BackendApplicationTests {
 
 	@Test
 	public void testPostTodo_withoutParams_thenFailure() throws Exception {
-		BasicToDo basicToDo = new BasicToDo();
-		basicToDo.setText("");
-		basicToDo.setDue_date(null);
+		ToDoDTO toDoDTO = new ToDoDTO(null, null);
+		toDoDTO.setText("");
+		toDoDTO.setDueDate(null);
 
-		this.mockMvc.perform(post("/todos", basicToDo)).andExpect(status().isBadRequest());
+		this.mockMvc.perform(post("/todos", toDoDTO)).andExpect(status().isBadRequest());
 	}
 
 	@Test
