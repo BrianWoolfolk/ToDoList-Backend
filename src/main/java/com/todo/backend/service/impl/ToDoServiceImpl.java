@@ -30,9 +30,35 @@ public class ToDoServiceImpl implements ToDoService {
     @Autowired
     private MetricsServiceImpl metricsService;
 
-    public ResponseEntity<GETResponse> getToDos(SearchParams searchParams) {
-        // Create sorting criteria
-        Sort sort = Sort.by(Sort.Direction.ASC, "id"); // Default sorting by id
+    public ResponseEntity<?> search(SearchParams searchParams) {
+        if (searchParams == null) {
+            return new ResponseEntity<>("Invalid search parameters", HttpStatus.BAD_REQUEST);
+        }
+
+        Sort sort = buildSortCriteria(searchParams);
+        Pageable pageable = PageRequest.of(searchParams.getPage(), SearchParams.PAGE_SIZE, sort);
+
+        Page<ToDo> toDos;
+        try {
+            toDos = toDoRepository.findAll(pageable);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error fetching ToDo items", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        List<ToDo> filteredList = toDos.getContent().stream()
+                .filter(todo -> searchParams.getDone() == null || todo.isDone() == searchParams.getDone())
+                .filter(todo -> searchParams.getText() == null || todo.getText().contains(searchParams.getText()))
+                .filter(todo -> searchParams.getPriority() == null || todo.getPriority() == searchParams.getPriority())
+                .collect(Collectors.toList());
+
+        LastMetrics metrics = metricsService.calculateMetrics(filteredList);
+        GETResponse response = new GETResponse(filteredList, toDos.getNumber(), toDos.getTotalPages(), metrics);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    private Sort buildSortCriteria(SearchParams searchParams) {
+        Sort sort = Sort.by(Sort.Direction.ASC, "id");
         if (searchParams.getSortPriority() != null) {
             sort = Sort.by(searchParams.getSortPriority() ? Sort.Direction.ASC : Sort.Direction.DESC, "priority");
         }
@@ -51,29 +77,7 @@ public class ToDoServiceImpl implements ToDoService {
             sort = sort.and(
                     Sort.by(searchParams.getSortDoneDate() ? Sort.Direction.ASC : Sort.Direction.DESC, "doneDate"));
         }
-
-        // Create a Pageable object
-        Pageable pageable = PageRequest.of(searchParams.getPage(), SearchParams.PAGE_SIZE, sort);
-
-        // Fetch the filtered and sorted page of ToDo objects
-        Page<ToDo> toDos = toDoRepository.findAll(pageable);
-
-        // Filter the results based on searchParams
-        List<ToDo> filteredList = toDos.getContent().stream()
-                .filter(todo -> searchParams.getDone() == null || todo.isDone() == searchParams.getDone())
-                .filter(todo -> searchParams.getText() == null || todo.getText().contains(searchParams.getText()))
-                .filter(todo -> searchParams.getPriority() == null || todo.getPriority() == searchParams.getPriority())
-                .collect(Collectors.toList());
-
-        // Create a Metrics object
-        LastMetrics metrics = metricsService.calculateMetrics(filteredList);
-
-        // Create a GETResponse object
-        GETResponse response = new GETResponse(filteredList, toDos.getNumber(), toDos.getTotalPages(),
-                metrics);
-
-        // Return a ResponseEntity with the response object and a status of OK
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return sort;
     }
 
     public ResponseEntity<?> getById(int id) {
