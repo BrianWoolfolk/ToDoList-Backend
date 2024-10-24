@@ -2,6 +2,7 @@ package com.todo.backend.service.impl;
 
 import com.todo.backend.model.Metrics;
 import com.todo.backend.model.ToDo;
+import com.todo.backend.model.Metrics.LastMetrics;
 import com.todo.backend.service.MetricsService;
 import org.springframework.stereotype.Service;
 import java.time.Instant;
@@ -11,9 +12,10 @@ import java.util.List;
 @Service
 public class MetricsServiceImpl implements MetricsService {
 
+    private final Metrics metrics = new Metrics();
+
     @Override
-    public Metrics calculateMetrics(List<ToDo> todos) {
-        Metrics metrics = new Metrics();
+    public LastMetrics calculateMetrics(List<ToDo> todos) {
         metrics.getHigh().restart();
         metrics.getMid().restart();
         metrics.getLow().restart();
@@ -54,6 +56,11 @@ public class MetricsServiceImpl implements MetricsService {
         }
 
         metrics.calculateFinalValues();
-        return metrics;
+        return metrics.getValues();
+    }
+
+    @Override
+    public LastMetrics getLastMetrics() {
+        return metrics.getValues();
     }
 }

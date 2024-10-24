@@ -31,7 +31,7 @@ public class BackendApplicationTests {
 
 	@Test
 	public void testPostTodo_withoutParams_thenFailure() throws Exception {
-		ToDoDTO toDoDTO = new ToDoDTO(null, null);
+		ToDoDTO toDoDTO = new ToDoDTO();
 		toDoDTO.setText("");
 		toDoDTO.setDueDate(null);
 

@@ -28,7 +28,7 @@ public class Metrics {
         values.lowPend = low.getPendingValue();
 
         int doneCount = high.getDoneCounter() + mid.getDoneCounter() + low.getDoneCounter();
-        int pendingCounter = high.getPending() + mid.getPending() + low.getPending();
+        int pendingCounter = high.getPendingCounter() + mid.getPendingCounter() + low.getPendingCounter();
         long totalSum = high.getSum() + mid.getSum() + low.getSum();
 
         values.totalAvg = doneCount > 0 ? (double) totalSum / doneCount : 0;
@@ -71,7 +71,7 @@ public class Metrics {
 
     @Getter
     @Setter
-    @NoArgsContructor
+    @NoArgsConstructor
     @AllArgsConstructor
     public static class LastMetrics {
         public double highAvg = 0;

@@ -1,5 +1,6 @@
 package com.todo.backend.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -10,297 +11,200 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.todo.backend.BasicToDo;
-import com.todo.backend.GETResponse;
-import com.todo.backend.Metrics;
-import com.todo.backend.Metrics.LastMetrics;
-import com.todo.backend.model.ToDo;
+import com.todo.backend.dto.ToDoDTO;
+import com.todo.backend.model.GETResponse;
+import com.todo.backend.model.SearchParams;
 import com.todo.backend.model.ToDo.Priority;
+import com.todo.backend.service.impl.ToDoServiceImpl;
 
-import java.text.ParseException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
 
-@CrossOrigin(origins = "*")
 @RestController
+@CrossOrigin(origins = "*")
 public class ToDoController {
 
-    // #region ################################ DATA BASE
-    private List<ToDo> DB = new ArrayList<>();
-    private Metrics metrics = new Metrics();
-
-    private SearchParams previousParams = new SearchParams();
-    private List<ToDo> lastResponse = null;
-    // #endregion
+    @Autowired
+    private ToDoServiceImpl toDoService;
 
     // #region ################################ FILTER & SORTING
-    private ResponseEntity<String> toggleDoneUndone(int id, Integer inPage, boolean markedAs) {
-        boolean found = false;
+    // private ResponseEntity<String> toggleDoneUndone(int id, Integer inPage,
+    // boolean markedAs) {
+    // boolean found = false;
 
-        if (inPage == null) {
-            for (ToDo toDo : DB) {
-                if (toDo.getId() == id) {
-                    toDo.setDone(markedAs);
-                    found = true;
-                    break;
-                }
-            }
-        } else {
-            // IF inPage EXISTS, WE TOGGLE ALL FROM THE LAST RESPONSE (IF ANY)
-            List<ToDo> aux = this.lastResponse == null ? this.DB : this.lastResponse;
+    // if (inPage == null) {
+    // for (ToDo toDo : DB) {
+    // if (toDo.getId() == id) {
+    // toDo.setDone(markedAs);
+    // found = true;
+    // break;
+    // }
+    // }
+    // } else {
+    // // IF inPage EXISTS, WE TOGGLE ALL FROM THE LAST RESPONSE (IF ANY)
+    // List<ToDo> aux = this.lastResponse == null ? this.DB : this.lastResponse;
 
-            int maxpage = (int) Math.max(Math.ceil(aux.size() / 10f), 1);
-            int page = (int) Math.min(Math.max(inPage, 1), maxpage);
-            List<ToDo> slice = aux.subList(10 * (page - 1), Math.min(10 * page, aux.size()));
+    // int maxpage = (int) Math.max(Math.ceil(aux.size() / 10f), 1);
+    // int page = (int) Math.min(Math.max(inPage, 1), maxpage);
+    // List<ToDo> slice = aux.subList(10 * (page - 1), Math.min(10 * page,
+    // aux.size()));
 
-            for (ToDo toDo : slice)
-                toDo.setDone(markedAs);
+    // for (ToDo toDo : slice)
+    // toDo.setDone(markedAs);
 
-            found = true;
-        }
+    // found = true;
+    // }
 
-        this.metrics.needsRecalculate();
-        this.lastResponse = null; // FORCE RECALCULATE
+    // this.metrics.needsRecalculate();
+    // this.lastResponse = null; // FORCE RECALCULATE
 
-        if (found)
-            return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
-        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
-    }
+    // if (found)
+    // return new ResponseEntity<>("Success", HttpStatus.ACCEPTED);
+    // return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+    // }
 
-    private List<ToDo> filter(Boolean done, String text, Priority priority) {
-        List<ToDo> filtered = new ArrayList<>(); // CLEAR ALL
+    // private List<ToDo> filter(Boolean done, String text, Priority priority) {
+    // List<ToDo> filtered = new ArrayList<>(); // CLEAR ALL
 
-        for (ToDo item : DB) {
-            if (done != null && item.getDone() != done)
-                continue;
-            if (priority != null && item.getPriority() != priority)
-                continue;
-            if (text != null && !item.getText().contains(text))
-                continue;
+    // for (ToDo item : DB) {
+    // if (done != null && item.getDone() != done)
+    // continue;
+    // if (priority != null && item.getPriority() != priority)
+    // continue;
+    // if (text != null && !item.getText().contains(text))
+    // continue;
 
-            filtered.add(item); // FILTERS PASSED
-        }
+    // filtered.add(item); // FILTERS PASSED
+    // }
 
-        return filtered;
-    }
+    // return filtered;
+    // }
 
-    private void sortList(List<ToDo> filtered, Boolean sortPriority, Boolean sortDueDate) {
-        Collections.sort(filtered, new Comparator<ToDo>() {
-            @Override
-            public int compare(final ToDo item1, final ToDo item2) {
-                int diff = 0;
-                if (sortPriority != null) {
-                    if (sortPriority)
-                        diff = item1.getPriority().compareTo(item2.getPriority());
-                    else
-                        diff = item2.getPriority().compareTo(item1.getPriority());
-                }
+    // private void sortList(List<ToDo> filtered, Boolean sortPriority, Boolean
+    // sortDueDate, Boolean sortText) {
+    // Comparator<ToDo> comparator = Comparator.comparing(ToDo::getId);
 
-                if (sortDueDate != null && diff == 0) {
-                    Instant d1 = item1.getDue_date();
-                    Instant d2 = item2.getDue_date();
+    // if (sortPriority != null) {
+    // comparator = Comparator.comparing(ToDo::getPriority);
+    // if (!sortPriority) {
+    // comparator = comparator.reversed();
+    // }
+    // }
 
-                    if (d1 == null && d2 == null)
-                        return 0;
+    // if (sortDueDate != null) {
+    // Comparator<ToDo> dueDateComparator = Comparator.comparing(ToDo::getDueDate,
+    // Comparator.nullsLast(Comparator.naturalOrder()));
+    // if (!sortDueDate) {
+    // dueDateComparator = dueDateComparator.reversed();
+    // }
+    // comparator = comparator.thenComparing(dueDateComparator);
+    // }
 
-                    if (sortDueDate) {
-                        diff = d1 == null ? 1
-                                : (d2 == null ? -1
-                                        : item1.getDue_date().compareTo(item2.getDue_date()));
-                    } else {
-                        diff = d1 == null ? -1
-                                : (d2 == null ? 1
-                                        : item2.getDue_date().compareTo(item1.getDue_date()));
-                    }
-                }
+    // if (sortText != null) {
+    // Comparator<ToDo> textComparator = Comparator.comparing(ToDo::getText);
+    // if (!sortText) {
+    // textComparator = textComparator.reversed();
+    // }
+    // comparator = comparator.thenComparing(textComparator);
+    // }
 
-                return diff;
-            }
-        });
-    }
+    // filtered.sort(comparator);
+    // }
     // #endregion
 
     // #region ################################ GET
     @RequestMapping(method = { RequestMethod.GET }, value = { "/todos" })
-    public GETResponse getAllToDos(
-            @RequestParam(defaultValue = "1") int pag,
-            @RequestParam(required = false) Boolean done,
-            @RequestParam(required = false) String text,
-            @RequestParam(required = false) Priority priority,
-            @RequestParam(required = false) Boolean sortPriority,
-            @RequestParam(required = false) Boolean sortDueDate) {
-        // TO AVOID UNNECESARY PROCESSES, WE STORE CACHE AND CHECK FOR CHANGES
-        List<ToDo> filtered = null;
-        LastMetrics lm = this.metrics.calculate(this.DB); // CHECK METRICS AGAIN
-        Boolean isSame = this.previousParams.isSameAsPrevious(done, text, priority, sortPriority, sortDueDate);
-
-        // SAME PARAMS, AND ALREADY AN ANSWER; SO TAKE BACK THE ANSWER
-        if (isSame && lastResponse != null) {
-            filtered = lastResponse;
-        } else {
-            // DIFFERENT PARAMS OR THERE'S NOT A PREVIOUS
-            filtered = new ArrayList<>(DB);
-
-            // FILTER (IF ANY)
-            if (done != null || text != null || priority != null) {
-                filtered = this.filter(done, text, priority);
-            }
-
-            // SORT BY (IF ANY)
-            if (sortDueDate != null || sortPriority != null) {
-                sortList(filtered, sortPriority, sortDueDate);
-            }
-
-            lastResponse = filtered; // SAVE THE LIST FOR NEXT
-        }
-
-        // EVEN IF WE GOT THE SAME ANSWER, WE CAN SEND A DIFFERENT PAGE TO CLIENT
-        int maxpage = (int) Math.max(Math.ceil(filtered.size() / 10f), 1);
-        int page = (int) Math.min(Math.max(pag, 1), maxpage);
-        List<ToDo> slice = filtered.subList(10 * (page - 1), Math.min(10 * page, filtered.size()));
-
-        return (new GETResponse(slice, page, maxpage, lm));
+    public ResponseEntity<GETResponse> getToDos(SearchParams searchParams) {
+        return toDoService.getToDos(searchParams);
     }
 
     @RequestMapping(method = { RequestMethod.GET }, value = { "/todos/{id}" })
-    public ResponseEntity<?> getToDo(@PathVariable int id) {
-        if (id < 0)
-            return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
-
-        for (ToDo toDo : DB) {
-            if (toDo.getId() == id)
-                return new ResponseEntity<ToDo>(toDo, HttpStatus.FOUND);
-        }
-
-        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> getById(@PathVariable int id) {
+        return toDoService.getById(id);
     }
     // #endregion
 
     // #region ################################ POST
     @RequestMapping(method = { RequestMethod.POST }, value = { "/todos" })
-    public ResponseEntity<String> createToDo(@RequestBody ToDoDTO toDo) {
+    public ResponseEntity<?> createToDo(@RequestBody ToDoDTO toDo) {
+        // Check for validation of empty text or text length > 120
         if (toDo.getText().length() <= 0 || toDo.getText().length() > 120)
             return new ResponseEntity<>("Text length must be 120 or lower", HttpStatus.BAD_REQUEST);
 
-        boolean stat = DB.add(
-                new ToDo(
-                        toDo.getText(),
-                        toDo.getPriority(),
-                        toDo.getDue_date()));
+        // Check for non null properties
+        if (toDo.getPriority() == null)
+            return new ResponseEntity<>("Priority cannot be null", HttpStatus.BAD_REQUEST);
 
-        if (!stat)
-            return new ResponseEntity<>("Server error", HttpStatus.INTERNAL_SERVER_ERROR);
+        // Check for invalid priority
+        try {
+            Priority.valueOf(toDo.getPriority().toString());
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>("Invalid priority", HttpStatus.BAD_REQUEST);
+        }
 
-        this.metrics.needsRecalculate();
-        this.lastResponse = null; // FORCE RECALCULATE
-        return new ResponseEntity<>("Added new ToDo item", HttpStatus.CREATED);
-    }
-
-    @RequestMapping(method = { RequestMethod.PUT }, value = { "/todos/{id}" })
-    public ResponseEntity<String> updateToDo(@PathVariable int id, @RequestBody Map<String, String> body)
-            throws ParseException {
-        if (id < 0)
-            return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
-
-        for (int i = 0; i < DB.size(); i++) {
-            ToDo todo = DB.get(i);
-            if (todo.getId() == id) {
-
-                String text = body.get("text");
-                if (text != null)
-                    todo.setText(text);
-
-                String priority = body.get("priority");
-                if (priority != null)
-                    todo.setPriority(Priority.valueOf(priority));
-
-                String due_date = body.get("due_date");
-                if (due_date != null) {
-                    if (due_date.equals("none"))
-                        todo.setDue_date(null);
-                    else
-                        todo.setDue_date(Instant.parse(due_date));
-                }
-
-                this.metrics.needsRecalculate();
-                this.lastResponse = null; // FORCE RECALCULATE
-                return new ResponseEntity<>("Item modified", HttpStatus.OK);
+        // Check for invalid due date
+        if (toDo.getDueDate() != null) {
+            try {
+                Instant.parse(toDo.getDueDate().toString());
+            } catch (Exception e) {
+                return new ResponseEntity<>("Invalid due date", HttpStatus.BAD_REQUEST);
             }
         }
 
-        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+        // Create the ToDo item
+        return toDoService.create(toDo);
+    }
+
+    @RequestMapping(method = { RequestMethod.PUT }, value = { "/todos/{id}" })
+    public ResponseEntity<?> updateToDo(@PathVariable int id, @RequestBody ToDoDTO toDo) {
+        // Check for invalid ID
+        if (id < 0)
+            return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
+
+        // Check for invalid text length
+        if (toDo.getText().length() <= 0 || toDo.getText().length() > 120)
+            return new ResponseEntity<>("Text length must be 120 or lower", HttpStatus.BAD_REQUEST);
+
+        // Check for non null properties
+        if (toDo.getPriority() == null)
+            return new ResponseEntity<>("Priority cannot be null", HttpStatus.BAD_REQUEST);
+
+        // Check for invalid priority
+        try {
+            Priority.valueOf(toDo.getPriority().toString());
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>("Invalid priority", HttpStatus.BAD_REQUEST);
+        }
+
+        // Check for invalid due date
+        if (toDo.getDueDate() != null) {
+            try {
+                Instant.parse(toDo.getDueDate().toString());
+            } catch (Exception e) {
+                return new ResponseEntity<>("Invalid due date", HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        // Update the ToDo item
+        return toDoService.update(id, toDo);
     }
     // #endregion
 
     // #region ################################ DONE/UNDONE
     @RequestMapping(method = { RequestMethod.POST }, value = { "/todos/{id}/done" })
-    public ResponseEntity<String> markDone(@PathVariable int id, @RequestParam(required = false) Integer inPage) {
-        if (id < 0)
-            return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
-
-        return this.toggleDoneUndone(id, inPage, true);
+    public ResponseEntity<?> markDone(@PathVariable int id, @RequestParam(required = false) Integer inPage) {
+        return toDoService.toggleDone(id, true);
     }
 
     @RequestMapping(method = { RequestMethod.PUT }, value = { "/todos/{id}/undone" })
-    public ResponseEntity<String> markUndone(@PathVariable int id, @RequestParam(required = false) Integer inPage) {
-        if (id < 0)
-            return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
-
-        return this.toggleDoneUndone(id, inPage, false);
+    public ResponseEntity<?> markUndone(@PathVariable int id, @RequestParam(required = false) Integer inPage) {
+        return toDoService.toggleDone(id, false);
     }
     // #endregion
 
     // #region ################################ DELETE
     @RequestMapping(method = { RequestMethod.DELETE }, value = { "/todos/{id}/delete" })
-    public ResponseEntity<String> deleteToDo(@PathVariable int id) {
-        if (id < 0)
-            return new ResponseEntity<>("Invalid ID", HttpStatus.BAD_REQUEST);
-
-        boolean found = DB.removeIf(todo -> todo.getId() == id);
-
-        this.metrics.needsRecalculate();
-        this.lastResponse = null; // FORCE RECALCULATE
-
-        if (found)
-            return new ResponseEntity<>("Deleted", HttpStatus.OK);
-        return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> delete(@PathVariable int id) {
+        return toDoService.delete(id);
     }
     // #endregion
-
-    /**
-     * Shortcut to save previous Search Params and see if its the same or not
-     */
-    public class SearchParams {
-        private Boolean done = null;
-        private String text = null;
-        private Priority priority = null;
-        private Boolean sortPriority = null;
-        private Boolean sortDueDate = null;
-
-        public Boolean isSameAsPrevious(
-                Boolean done,
-                String text,
-                Priority priority,
-                Boolean sortPriority,
-                Boolean sortDueDate) {
-            Boolean check = true;
-
-            if (done != this.done || text != this.text || priority != this.priority
-                    || sortPriority != this.sortPriority || sortDueDate != this.sortDueDate) {
-                check = false;
-            }
-
-            this.done = done;
-            this.text = text;
-            this.priority = priority;
-            this.sortPriority = sortPriority;
-            this.sortDueDate = sortDueDate;
-
-            return check;
-        }
-    }
 }
