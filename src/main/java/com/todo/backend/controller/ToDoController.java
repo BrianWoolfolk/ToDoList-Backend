@@ -27,7 +27,6 @@ public class ToDoController {
     @Autowired
     private ToDoServiceImpl toDoService;
 
-    // #region ################################ GET
     @GetMapping("/todos")
     public ResponseEntity<?> getToDos(SearchParams searchParams) {
         return toDoService.search(searchParams);
@@ -37,21 +36,17 @@ public class ToDoController {
     public ResponseEntity<?> getById(@PathVariable int id) {
         return toDoService.getById(id);
     }
-    // #endregion
 
-    // #region ################################ POST
     @PostMapping("/todos")
     public ResponseEntity<?> createToDo(@Valid @RequestBody ToDoDTO toDo) {
         return toDoService.create(toDo);
     }
 
     @PostMapping("/todos/{id}")
-    public ResponseEntity<?> updateToDo(@PathVariable int id, @Valid @RequestBody ToDoDTO toDo) {
+    public ResponseEntity<?> updateToDo(@PathVariable int id, @RequestBody ToDoDTO toDo) {
         return toDoService.update(id, toDo);
     }
-    // #endregion
 
-    // #region ################################ DONE/UNDONE
     @PostMapping("/todos/{id}/done")
     public ResponseEntity<?> markDone(@PathVariable int id) {
         return toDoService.toggleDone(id, true);
@@ -61,12 +56,9 @@ public class ToDoController {
     public ResponseEntity<?> markUndone(@PathVariable int id) {
         return toDoService.toggleDone(id, false);
     }
-    // #endregion
 
-    // #region ################################ DELETE
     @RequestMapping(method = { RequestMethod.DELETE }, value = { "/todos/{id}/delete" })
     public ResponseEntity<?> delete(@PathVariable int id) {
         return toDoService.delete(id);
     }
-    // #endregion
 }

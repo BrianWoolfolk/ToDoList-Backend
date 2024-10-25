@@ -1,8 +1,11 @@
 package com.todo.backend.dto;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import com.todo.backend.model.ToDo.Priority;
 
 import jakarta.annotation.Nullable;
@@ -20,5 +23,6 @@ public class ToDoDTO {
 
     @Nullable
     @JsonProperty("due_date")
-    private Instant dueDate;
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
+    private Optional<Optional<Instant>> dueDate = Optional.empty();
 }

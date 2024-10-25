@@ -8,6 +8,9 @@ import com.todo.backend.repository.ToDoRepository;
 import com.todo.backend.service.ToDoService;
 import com.todo.backend.model.SearchParams;
 import com.todo.backend.dto.ToDoDTO;
+import com.todo.backend.exception.ClientErrorException;
+import com.todo.backend.exception.DatabaseErrorException;
+import com.todo.backend.exception.ValidationErrorException;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
@@ -17,8 +20,11 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,9 +36,9 @@ public class ToDoServiceImpl implements ToDoService {
     @Autowired
     private MetricsServiceImpl metricsService;
 
-    public ResponseEntity<?> search(SearchParams searchParams) {
+    public ResponseEntity<GETResponse> search(SearchParams searchParams) {
         if (searchParams == null) {
-            return new ResponseEntity<>("Invalid search parameters", HttpStatus.BAD_REQUEST);
+            throw new ClientErrorException("Invalid search parameters");
         }
 
         Sort sort = buildSortCriteria(searchParams);
@@ -42,7 +48,7 @@ public class ToDoServiceImpl implements ToDoService {
         try {
             toDos = toDoRepository.findAll(pageable);
         } catch (Exception e) {
-            return new ResponseEntity<>("Error fetching ToDo items", HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new DatabaseErrorException("Error fetching ToDo items");
         }
 
         List<ToDo> filteredList = toDos.getContent().stream()
@@ -80,26 +86,46 @@ public class ToDoServiceImpl implements ToDoService {
         return sort;
     }
 
-    public ResponseEntity<?> getById(int id) {
-        // Fetch the ToDo object with the given id
-        ToDo toDo = toDoRepository.findById(id).orElse(null);
+    public ResponseEntity<ToDo> getById(int id) {
+        ToDo toDo = toDoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo not found"));
 
-        // If the ToDo object is not found, return a ResponseEntity with a status of
-        // NOT_FOUND
-        if (toDo == null) {
-            return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
-        }
-
-        // Return a ResponseEntity with the ToDo object and a status of OK
         return new ResponseEntity<>(toDo, HttpStatus.OK);
     }
 
     public ResponseEntity<?> create(ToDoDTO toDoDTO) {
+        // Check validation constraints
+        if (toDoDTO.getText() == null || toDoDTO.getText().length() < 1 || toDoDTO.getText().length() > 120) {
+            throw new ValidationErrorException("Text must be between 1 and 120 characters");
+        }
+
+        // Check if the priority is valid
+        if (toDoDTO.getPriority() == null) {
+            throw new ValidationErrorException("Priority must be specified");
+        }
+
+        // Check if the due date is a valid date or null
+        if (!toDoDTO.getDueDate().isPresent()) {
+            throw new ValidationErrorException("Due date must be null or a valid date");
+        }
+
+        // Handle due date
+        Instant dueDate = null;
+        if (toDoDTO.getDueDate().isPresent()) {
+            Optional<Instant> dueDateOptional = toDoDTO.getDueDate().get();
+            if (dueDateOptional.isPresent()) {
+                dueDate = dueDateOptional.get();
+                if (dueDate.isBefore(Instant.now())) {
+                    throw new ValidationErrorException("Due date must be in the future");
+                }
+            }
+        }
+
         // Create a new ToDo object from the ToDoDTO object
         ToDo toDo = new ToDo();
         toDo.setText(toDoDTO.getText());
         toDo.setPriority(toDoDTO.getPriority());
-        toDo.setDueDate(toDoDTO.getDueDate());
+        toDo.setDueDate(dueDate);
 
         // Save the ToDo object to the database
         toDoRepository.save(toDo);
@@ -110,18 +136,38 @@ public class ToDoServiceImpl implements ToDoService {
 
     public ResponseEntity<?> update(int id, ToDoDTO toDoDTO) {
         // Fetch the ToDo object with the given id
-        ToDo toDo = toDoRepository.findById(id).orElse(null);
-
-        // If the ToDo object is not found, return a ResponseEntity with a status of
-        // NOT_FOUND
-        if (toDo == null) {
-            return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
-        }
+        ToDo toDo = toDoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo not found"));
 
         // Update the ToDo object with the values from the ToDoDTO object
-        toDo.setText(toDoDTO.getText());
-        toDo.setPriority(toDoDTO.getPriority());
-        toDo.setDueDate(toDoDTO.getDueDate());
+        // Check if the text is present to update
+        if (toDoDTO.getText() != null) {
+            // Check validation constraints
+            if (toDoDTO.getText().length() < 1 || toDoDTO.getText().length() > 120) {
+                throw new ValidationErrorException("Text must be between 1 and 120 characters");
+            }
+
+            toDo.setText(toDoDTO.getText());
+        }
+
+        // Check if the priority is present to update
+        if (toDoDTO.getPriority() != null) {
+            toDo.setPriority(toDoDTO.getPriority());
+        }
+
+        // Handle due date
+        if (toDoDTO.getDueDate().isPresent()) {
+            Optional<Instant> dueDateOptional = toDoDTO.getDueDate().get();
+            if (dueDateOptional.isPresent()) {
+                Instant dueDate = dueDateOptional.get();
+                if (dueDate.isBefore(Instant.now())) {
+                    throw new ValidationErrorException("Due date must be in the future");
+                }
+                toDo.setDueDate(dueDate);
+            } else {
+                toDo.setDueDate(null);
+            }
+        }
 
         // Save the updated ToDo object to the database
         toDoRepository.save(toDo);
@@ -132,13 +178,8 @@ public class ToDoServiceImpl implements ToDoService {
 
     public ResponseEntity<?> delete(int id) {
         // Fetch the ToDo object with the given id
-        ToDo toDo = toDoRepository.findById(id).orElse(null);
-
-        // If the ToDo object is not found, return a ResponseEntity with a status of
-        // NOT_FOUND
-        if (toDo == null) {
-            return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
-        }
+        ToDo toDo = toDoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo not found"));
 
         // Delete the ToDo object from the database
         toDoRepository.delete(toDo);
@@ -149,13 +190,8 @@ public class ToDoServiceImpl implements ToDoService {
 
     public ResponseEntity<?> toggleDone(int id, boolean done) {
         // Fetch the ToDo object with the given id
-        ToDo toDo = toDoRepository.findById(id).orElse(null);
-
-        // If the ToDo object is not found, return a ResponseEntity with a status of
-        // NOT_FOUND
-        if (toDo == null) {
-            return new ResponseEntity<>("Not Found", HttpStatus.NOT_FOUND);
-        }
+        ToDo toDo = toDoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo not found"));
 
         // Mark the ToDo object as done
         toDo.setDone(done);
