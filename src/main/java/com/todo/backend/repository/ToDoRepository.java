@@ -2,7 +2,8 @@ package com.todo.backend.repository;
 
 import com.todo.backend.model.ToDo;
 
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
@@ -26,7 +27,7 @@ public interface ToDoRepository extends JpaRepository<ToDo, Integer> {
             "(:doneDateTo IS NULL OR t.doneDate <= :doneDateTo) AND " +
             "(:assignedUser IS NULL OR t.assignedUser = :assignedUser) AND " +
             "(:tags IS NULL OR t.tags IN :tags)")
-    List<ToDo> searchToDos(
+    Page<ToDo> searchToDos(
             @Param("text") String text,
             @Param("done") Boolean done,
             @Param("priority") ToDo.Priority priority,
@@ -39,6 +40,6 @@ public interface ToDoRepository extends JpaRepository<ToDo, Integer> {
 
             @Param("tags") List<String> tags,
             @Param("user") String assignedUser,
-            Sort sort);
+            Pageable pageable);
 
 }

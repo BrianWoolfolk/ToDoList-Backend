@@ -9,6 +9,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.validation.constraints.Size;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -50,6 +52,8 @@ public class ToDo {
     private List<String> tags;
 
     @Nullable
+    @Size(min = 1, max = 50, message = "Assigned user must be between 1 and 50 characters")
+    @JsonProperty("assigned_user")
     private String assignedUser;
 
     public void setDone(boolean done) {

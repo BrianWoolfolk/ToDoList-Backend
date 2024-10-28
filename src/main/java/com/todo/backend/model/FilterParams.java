@@ -35,7 +35,4 @@ public class FilterParams {
     private List<String> tags;
     @Nullable
     private String assignedUser;
-
-    private int page = 0; // Default page number
-    public static final int PAGE_SIZE = 10; // Default page size
 }

@@ -1,5 +1,7 @@
 package com.todo.backend.model;
 
+import java.util.List;
+
 import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,4 +27,6 @@ public class SortParams {
     // private Boolean tags;
     @Nullable
     private Boolean assignedUser;
+    @Nullable
+    private List<String> sortOrder;
 }

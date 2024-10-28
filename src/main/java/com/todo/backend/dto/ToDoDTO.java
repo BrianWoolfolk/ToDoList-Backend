@@ -31,6 +31,7 @@ public class ToDoDTO {
     private List<String> tags;
 
     @Nullable
+    @Size(min = 1, max = 50, message = "Assigned user must be between 1 and 50 characters")
     @JsonProperty("assigned_user")
-    private String assignedUser;
+    private Optional<Optional<String>> assignedUser = Optional.empty();
 }
