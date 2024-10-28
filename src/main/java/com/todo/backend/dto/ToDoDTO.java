@@ -1,6 +1,7 @@
 package com.todo.backend.dto;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -25,4 +26,11 @@ public class ToDoDTO {
     @JsonProperty("due_date")
     @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Optional<Optional<Instant>> dueDate = Optional.empty();
+
+    @Nullable
+    private List<String> tags;
+
+    @Nullable
+    @JsonProperty("assigned_user")
+    private String assignedUser;
 }

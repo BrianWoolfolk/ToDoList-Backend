@@ -14,7 +14,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.todo.backend.dto.ToDoDTO;
-import com.todo.backend.model.SearchParams;
+import com.todo.backend.model.FilterParams;
+import com.todo.backend.model.SortParams;
 import com.todo.backend.service.impl.ToDoServiceImpl;
 
 import jakarta.validation.Valid;
@@ -28,8 +29,8 @@ public class ToDoController {
     private ToDoServiceImpl toDoService;
 
     @GetMapping("/todos")
-    public ResponseEntity<?> getToDos(SearchParams searchParams) {
-        return toDoService.search(searchParams);
+    public ResponseEntity<?> getToDos(FilterParams searchParams, SortParams sortParams) {
+        return toDoService.search(searchParams, sortParams);
     }
 
     @GetMapping("/todos/{id}")

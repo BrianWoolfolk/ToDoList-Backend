@@ -4,12 +4,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.NonNull;
-
+import jakarta.annotation.Nullable;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import java.time.Instant;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -44,6 +45,12 @@ public class ToDo {
 
     @JsonProperty("done_date")
     private Instant doneDate;
+
+    @NonNull
+    private List<String> tags;
+
+    @Nullable
+    private String assignedUser;
 
     public void setDone(boolean done) {
         if (done != this.done) {

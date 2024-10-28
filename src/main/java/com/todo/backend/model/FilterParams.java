@@ -1,16 +1,18 @@
 package com.todo.backend.model;
 
 import com.todo.backend.model.ToDo.Priority;
-
 import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class SearchParams {
+public class FilterParams {
     @Nullable
     private Boolean done;
     @Nullable
@@ -18,15 +20,22 @@ public class SearchParams {
     @Nullable
     private Priority priority;
     @Nullable
-    private Boolean sortPriority;
+    private Instant dueDateFrom;
     @Nullable
-    private Boolean sortDueDate;
+    private Instant dueDateTo;
     @Nullable
-    private Boolean sortText;
+    private Instant creationDateFrom;
     @Nullable
-    private Boolean sortCreationDate;
+    private Instant creationDateTo;
     @Nullable
-    private Boolean sortDoneDate;
+    private Instant doneDateFrom;
+    @Nullable
+    private Instant doneDateTo;
+    @Nullable
+    private List<String> tags;
+    @Nullable
+    private String assignedUser;
+
     private int page = 0; // Default page number
     public static final int PAGE_SIZE = 10; // Default page size
 }

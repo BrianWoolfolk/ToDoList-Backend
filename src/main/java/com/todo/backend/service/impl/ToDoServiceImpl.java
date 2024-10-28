@@ -1,18 +1,20 @@
 package com.todo.backend.service.impl;
 
 import com.todo.backend.model.GETResponse;
+import com.todo.backend.model.SortParams;
 import com.todo.backend.model.Metrics.LastMetrics;
 import com.todo.backend.model.ToDo;
-import com.todo.backend.model.ToDo.Priority;
 import com.todo.backend.repository.ToDoRepository;
 import com.todo.backend.service.ToDoService;
-import com.todo.backend.model.SearchParams;
+import com.todo.backend.model.FilterParams;
 import com.todo.backend.dto.ToDoDTO;
 import com.todo.backend.exception.ClientErrorException;
 import com.todo.backend.exception.DatabaseErrorException;
 import com.todo.backend.exception.ValidationErrorException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,25 +38,14 @@ public class ToDoServiceImpl implements ToDoService {
     @Autowired
     private MetricsServiceImpl metricsService;
 
-    public ResponseEntity<GETResponse> search(SearchParams searchParams) {
-        if (searchParams == null) {
-            throw new ClientErrorException("Invalid search parameters");
-        }
-
-        Sort sort = buildSortCriteria(searchParams);
-        Pageable pageable = PageRequest.of(searchParams.getPage(), SearchParams.PAGE_SIZE, sort);
-
-        Page<ToDo> toDos;
-        try {
-            toDos = toDoRepository.findAll(pageable);
-        } catch (Exception e) {
-            throw new DatabaseErrorException("Error fetching ToDo items");
-        }
+    @Cacheable(value = "searchCache", key = "#searchParams")
+    public ResponseEntity<GETResponse> search(FilterParams filterParams, SortParams sortParams) {
+        Page<ToDo> toDos = getPage(filterParams, sortParams);
 
         List<ToDo> filteredList = toDos.getContent().stream()
-                .filter(todo -> searchParams.getDone() == null || todo.isDone() == searchParams.getDone())
-                .filter(todo -> searchParams.getText() == null || todo.getText().contains(searchParams.getText()))
-                .filter(todo -> searchParams.getPriority() == null || todo.getPriority() == searchParams.getPriority())
+                .filter(todo -> filterParams.getDone() == null || todo.isDone() == filterParams.getDone())
+                .filter(todo -> filterParams.getText() == null || todo.getText().contains(filterParams.getText()))
+                .filter(todo -> filterParams.getPriority() == null || todo.getPriority() == filterParams.getPriority())
                 .collect(Collectors.toList());
 
         LastMetrics metrics = metricsService.calculateMetrics(filteredList);
@@ -63,29 +54,58 @@ public class ToDoServiceImpl implements ToDoService {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    private Sort buildSortCriteria(SearchParams searchParams) {
+    private Page<ToDo> getPage(FilterParams filterParams, SortParams sortParams) {
+        if (filterParams == null) {
+            throw new ClientErrorException("Invalid search parameters");
+        }
+
+        Sort sort = buildSortCriteria(sortParams);
+        Pageable pageable = PageRequest.of(filterParams.getPage(), FilterParams.PAGE_SIZE, sort);
+
+        Page<ToDo> toDos;
+        try {
+            toDos = toDoRepository.findAll(pageable);
+        } catch (Exception e) {
+            throw new DatabaseErrorException("Error fetching ToDo items");
+        }
+
+        return toDos;
+    }
+
+    private Sort buildSortCriteria(SortParams sortParams) {
         Sort sort = Sort.by(Sort.Direction.ASC, "id");
-        if (searchParams.getSortPriority() != null) {
-            sort = Sort.by(searchParams.getSortPriority() ? Sort.Direction.ASC : Sort.Direction.DESC, "priority");
+        if (sortParams == null) {
+            return sort;
         }
-        if (searchParams.getSortDueDate() != null) {
+        if (sortParams.getPriority() != null) {
+            sort = Sort.by(sortParams.getPriority() ? Sort.Direction.ASC : Sort.Direction.DESC, "priority");
+        }
+        if (sortParams.getDueDate() != null) {
             sort = sort
-                    .and(Sort.by(searchParams.getSortDueDate() ? Sort.Direction.ASC : Sort.Direction.DESC, "dueDate"));
+                    .and(Sort.by(sortParams.getDueDate() ? Sort.Direction.ASC : Sort.Direction.DESC, "dueDate"));
         }
-        if (searchParams.getSortText() != null) {
-            sort = sort.and(Sort.by(searchParams.getSortText() ? Sort.Direction.ASC : Sort.Direction.DESC, "text"));
+        if (sortParams.getText() != null) {
+            sort = sort.and(Sort.by(sortParams.getText() ? Sort.Direction.ASC : Sort.Direction.DESC, "text"));
         }
-        if (searchParams.getSortCreationDate() != null) {
-            sort = sort.and(Sort.by(searchParams.getSortCreationDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
+        if (sortParams.getCreationDate() != null) {
+            sort = sort.and(Sort.by(sortParams.getCreationDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
                     "creationDate"));
         }
-        if (searchParams.getSortDoneDate() != null) {
+        if (sortParams.getDoneDate() != null) {
             sort = sort.and(
-                    Sort.by(searchParams.getSortDoneDate() ? Sort.Direction.ASC : Sort.Direction.DESC, "doneDate"));
+                    Sort.by(sortParams.getDoneDate() ? Sort.Direction.ASC : Sort.Direction.DESC, "doneDate"));
+        }
+        if (sortParams.getDone() != null) {
+            sort = sort.and(Sort.by(sortParams.getDone() ? Sort.Direction.ASC : Sort.Direction.DESC, "done"));
+        }
+        if (sortParams.getAssignedUser() != null) {
+            sort = sort.and(Sort.by(sortParams.getAssignedUser() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                    "assignedUser"));
         }
         return sort;
     }
 
+    @Cacheable(value = "searchCache", key = "#id")
     public ResponseEntity<ToDo> getById(int id) {
         ToDo toDo = toDoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ToDo not found"));
@@ -93,6 +113,7 @@ public class ToDoServiceImpl implements ToDoService {
         return new ResponseEntity<>(toDo, HttpStatus.OK);
     }
 
+    @CacheEvict(value = "searchCache", allEntries = true)
     public ResponseEntity<?> create(ToDoDTO toDoDTO) {
         // Check validation constraints
         if (toDoDTO.getText() == null || toDoDTO.getText().length() < 1 || toDoDTO.getText().length() > 120) {
@@ -134,6 +155,7 @@ public class ToDoServiceImpl implements ToDoService {
         return new ResponseEntity<>(toDo, HttpStatus.CREATED);
     }
 
+    @CacheEvict(value = "searchCache", allEntries = true)
     public ResponseEntity<?> update(int id, ToDoDTO toDoDTO) {
         // Fetch the ToDo object with the given id
         ToDo toDo = toDoRepository.findById(id)
@@ -176,6 +198,7 @@ public class ToDoServiceImpl implements ToDoService {
         return new ResponseEntity<>(toDo, HttpStatus.OK);
     }
 
+    @CacheEvict(value = "searchCache", allEntries = true)
     public ResponseEntity<?> delete(int id) {
         // Fetch the ToDo object with the given id
         ToDo toDo = toDoRepository.findById(id)
@@ -188,6 +211,7 @@ public class ToDoServiceImpl implements ToDoService {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @CacheEvict(value = "searchCache", allEntries = true)
     public ResponseEntity<?> toggleDone(int id, boolean done) {
         // Fetch the ToDo object with the given id
         ToDo toDo = toDoRepository.findById(id)
@@ -203,9 +227,25 @@ public class ToDoServiceImpl implements ToDoService {
         return new ResponseEntity<>(toDo, HttpStatus.OK);
     }
 
-    public ResponseEntity<?> searchToDos(String text, Boolean done, Priority priority) {
+    // Aditional methods
+
+    public ResponseEntity<?> searchToDos(FilterParams searchParams, SortParams sortParams) {
+        Sort sort = buildSortCriteria(sortParams);
+
         // Fetch the filtered ToDo objects from the database
-        List<ToDo> toDos = toDoRepository.searchToDos(text, done, priority);
+        List<ToDo> toDos = toDoRepository.searchToDos(
+                searchParams.getText(),
+                searchParams.getDone(),
+                searchParams.getPriority(),
+                searchParams.getDueDateFrom(),
+                searchParams.getDueDateTo(),
+                searchParams.getCreationDateFrom(),
+                searchParams.getCreationDateTo(),
+                searchParams.getDoneDateFrom(),
+                searchParams.getDoneDateTo(),
+                searchParams.getTags(),
+                searchParams.getAssignedUser(),
+                sort);
 
         // Return a ResponseEntity with the filtered ToDo objects and a status of OK
         return new ResponseEntity<>(toDos, HttpStatus.OK);

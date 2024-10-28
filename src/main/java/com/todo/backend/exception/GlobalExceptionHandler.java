@@ -40,6 +40,29 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>("Client Error: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public final ResponseEntity<Object> handleConflictException(ConflictException ex, WebRequest request) {
+        return new ResponseEntity<>("Conflict Error: " + ex.getMessage(), HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public final ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex,
+            WebRequest request) {
+        return new ResponseEntity<>("Resource Not Found: " + ex.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public final ResponseEntity<Object> handleUnauthorizedAccessException(UnauthorizedAccessException ex,
+            WebRequest request) {
+        return new ResponseEntity<>("Unauthorized Access: " + ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(ValidationErrorException.class)
+    public final ResponseEntity<Object> handleValidationErrorException(ValidationErrorException ex,
+            WebRequest request) {
+        return new ResponseEntity<>("Validation Error: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public final ResponseEntity<Object> handleAllExceptions(Exception ex, WebRequest request) {
         return new ResponseEntity<>("Error occurred: " + ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
