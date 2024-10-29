@@ -64,6 +64,16 @@ public class ToDoController {
         return toDoService.toggleDone(id, false);
     }
 
+    @PutMapping("/todos/markAll")
+    public ResponseEntity<?> markAll(
+            @ModelAttribute FilterParams searchParams,
+            @ModelAttribute SortParams sortParams,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "true") boolean done) {
+        return toDoService.markAll(searchParams, sortParams, page, size, done);
+    }
+
     @RequestMapping(method = { RequestMethod.DELETE }, value = { "/todos/{id}/delete" })
     public ResponseEntity<?> delete(@PathVariable int id) {
         return toDoService.delete(id);

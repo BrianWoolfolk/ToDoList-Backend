@@ -6,6 +6,7 @@ import com.todo.backend.model.ToDo;
 import com.todo.backend.repository.ToDoRepository;
 import com.todo.backend.service.ToDoService;
 import com.todo.backend.model.FilterParams;
+import com.todo.backend.model.GETResponse;
 import com.todo.backend.dto.ToDoDTO;
 import com.todo.backend.exception.ValidationErrorException;
 
@@ -41,36 +42,18 @@ public class ToDoServiceImpl implements ToDoService {
 
     @Cacheable(value = "searchCache", key = "{#searchParams, #sortParams, #page, #size}")
     public ResponseEntity<?> search(FilterParams searchParams, SortParams sortParams, int page, int size) {
-        if (page < 0 || size < 1) {
-            throw new ValidationErrorException(
-                    "Page must be greater than or equal to 0 and size must be greater than 0");
-        }
+        // Fetch the ToDo objects from the database
+        Page<ToDo> toDosPage = getToDosPage(searchParams, sortParams, page, size);
 
-        if (searchParams == null) {
-            searchParams = new FilterParams();
-        }
+        // Get the Metrics object from the MetricsService
+        LastMetrics metrics = getMetrics(searchParams);
 
-        // Build the sort criteria from the SortParams object
-        Sort sort = buildSortCriteria(sortParams);
-        Pageable pageable = PageRequest.of(page, size, sort);
+        // Create GETResponse object with the ToDo objects, page, maxpage and metrics
+        GETResponse toDosResponse = new GETResponse(toDosPage.getContent(), toDosPage.getNumber(),
+                toDosPage.getTotalPages(), metrics);
 
-        // Fetch the filtered ToDo objects from the database with pagination
-        Page<ToDo> toDosPage = toDoRepository.searchToDos(
-                searchParams.getText(),
-                searchParams.getDone(),
-                searchParams.getPriority(),
-                searchParams.getDueDateFrom(),
-                searchParams.getDueDateTo(),
-                searchParams.getCreationDateFrom(),
-                searchParams.getCreationDateTo(),
-                searchParams.getDoneDateFrom(),
-                searchParams.getDoneDateTo(),
-                searchParams.getTags(),
-                searchParams.getAssignedUser(),
-                pageable);
-
-        // Return a ResponseEntity with the filtered ToDo objects and a status of OK
-        return new ResponseEntity<>(toDosPage, HttpStatus.OK);
+        // Return a ResponseEntity with the GETResponse object and a status of OK
+        return new ResponseEntity<>(toDosResponse, HttpStatus.OK);
     }
 
     @Cacheable(value = "sortCriteria", key = "#sortParams")
@@ -307,11 +290,87 @@ public class ToDoServiceImpl implements ToDoService {
 
     // Aditional methods
 
-    public ResponseEntity<?> getMetrics() {
+    @CacheEvict(value = "searchCache", allEntries = true)
+    public ResponseEntity<?> markAll(
+            FilterParams searchParams,
+            SortParams sortParams,
+            int page,
+            int size,
+            boolean done) {
+        // Fetch the ToDo objects from the database
+        Page<ToDo> toDosPage = getToDosPage(searchParams, sortParams, page, size);
+
+        // Get the ToDo objects from the Page object
+        List<ToDo> toDos = toDosPage.getContent();
+
+        // Mark all the ToDo objects as done
+        for (ToDo toDo : toDos) {
+            toDo.setDone(done);
+        }
+
+        // Save the updated ToDo objects to the database
+        toDoRepository.saveAll(toDos);
+
+        // Return a ResponseEntity with a status of OK
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    public Page<ToDo> getToDosPage(FilterParams searchParams, SortParams sortParams, int page, int size) {
+        if (page < 0 || size < 1) {
+            throw new ValidationErrorException(
+                    "Page must be greater than or equal to 0 and size must be greater than 0");
+        }
+
+        if (searchParams == null) {
+            searchParams = new FilterParams();
+        }
+
+        // Build the sort criteria from the SortParams object
+        Sort sort = buildSortCriteria(sortParams);
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Fetch the filtered ToDo objects from the database with pagination
+        Page<ToDo> toDosPage = toDoRepository.searchToDos(
+                searchParams.getText(),
+                searchParams.getDone(),
+                searchParams.getPriority(),
+                searchParams.getDueDateFrom(),
+                searchParams.getDueDateTo(),
+                searchParams.getCreationDateFrom(),
+                searchParams.getCreationDateTo(),
+                searchParams.getDoneDateFrom(),
+                searchParams.getDoneDateTo(),
+                searchParams.getTags(),
+                searchParams.getAssignedUser(),
+                pageable);
+
+        return toDosPage;
+    }
+
+    public LastMetrics getMetrics(FilterParams searchParams) {
+        if (searchParams == null) {
+            searchParams = new FilterParams();
+        }
+
+        // Fetch all the ToDo objects from the database
+        List<ToDo> toDos = toDoRepository.searchAllToDos(
+                searchParams.getText(),
+                searchParams.getDone(),
+                searchParams.getPriority(),
+                searchParams.getDueDateFrom(),
+                searchParams.getDueDateTo(),
+                searchParams.getCreationDateFrom(),
+                searchParams.getCreationDateTo(),
+                searchParams.getDoneDateFrom(),
+                searchParams.getDoneDateTo(),
+                searchParams.getTags(),
+                searchParams.getAssignedUser());
+        metricsService.calculateMetrics(toDos);
+
         // Fetch the last metrics object
         LastMetrics lastMetrics = metricsService.getLastMetrics();
 
-        // Return a ResponseEntity with the last metrics object and a status of OK
-        return new ResponseEntity<>(lastMetrics, HttpStatus.OK);
+        // Return the last metrics object
+        return lastMetrics;
     }
 }
