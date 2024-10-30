@@ -5,6 +5,7 @@ import com.todo.backend.model.User;
 import com.todo.backend.repository.UserRepository;
 
 import java.util.HashSet;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -47,6 +48,10 @@ public class UserServiceImpl implements UserDetailsService {
                 .password(user.getPassword())
                 .roles(user.getRoles().toArray(new String[0]))
                 .build();
+    }
+
+    public Optional<User> findByUsername(String username) {
+        return userRepository.findByUsername(username);
     }
 
     public ResponseEntity<?> logout() {
