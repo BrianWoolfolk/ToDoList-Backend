@@ -4,6 +4,7 @@ import java.util.Set;
 
 import com.todo.backend.model.User;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -21,9 +22,10 @@ public class UserDTO {
     private String password;
 
     @NotEmpty
+    @Nullable
     private Set<String> roles;
 
     public User toUser() {
-        return new User(null, username, password, roles);
+        return new User(0, username, password, roles);
     }
 }

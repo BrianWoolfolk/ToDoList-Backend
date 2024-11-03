@@ -12,21 +12,21 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class SortParams {
     @Nullable
-    private Boolean done;
+    private Boolean sortByDone;
     @Nullable
-    private Boolean text;
+    private Boolean sortByText;
     @Nullable
-    private Boolean priority;
+    private Boolean sortByPriority;
     @Nullable
-    private Boolean dueDate;
+    private Boolean sortByDueDate;
     @Nullable
-    private Boolean creationDate;
+    private Boolean sortByCreationDate;
     @Nullable
-    private Boolean doneDate;
+    private Boolean sortByDoneDate;
     // @Nullable
     // private Boolean tags;
     @Nullable
-    private Boolean assignedUser;
+    private Boolean sortByAssignedUser;
     @Nullable
     private List<String> sortOrder;
 }

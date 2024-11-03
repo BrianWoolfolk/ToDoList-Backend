@@ -68,49 +68,54 @@ public class ToDoServiceImpl implements ToDoService {
                 "assignedUser"));
         Set<String> addedFields = new HashSet<>();
 
-        for (String field : sortParams.getSortOrder()) {
+        for (String field : fields) {
             switch (field) {
                 case "priority":
-                    if (sortParams.getPriority() != null && addedFields.add("priority")) {
-                        orders.add(new Sort.Order(sortParams.getPriority() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                    if (sortParams.getSortByPriority() != null && addedFields.add("priority")) {
+                        orders.add(new Sort.Order(
+                                sortParams.getSortByPriority() ? Sort.Direction.ASC : Sort.Direction.DESC,
                                 "priority"));
                     }
                     break;
                 case "dueDate":
-                    if (sortParams.getDueDate() != null && addedFields.add("dueDate")) {
-                        orders.add(new Sort.Order(sortParams.getDueDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
-                                "dueDate"));
+                    if (sortParams.getSortByDueDate() != null && addedFields.add("dueDate")) {
+                        orders.add(
+                                new Sort.Order(sortParams.getSortByDueDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                                        "dueDate"));
                     }
                     break;
                 case "text":
-                    if (sortParams.getText() != null && addedFields.add("text")) {
-                        orders.add(new Sort.Order(sortParams.getText() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                    if (sortParams.getSortByText() != null && addedFields.add("text")) {
+                        orders.add(new Sort.Order(sortParams.getSortByText() ? Sort.Direction.ASC : Sort.Direction.DESC,
                                 "text"));
                     }
                     break;
                 case "creationDate":
-                    if (sortParams.getCreationDate() != null && addedFields.add("creationDate")) {
+                    if (sortParams.getSortByCreationDate() != null && addedFields.add("creationDate")) {
                         orders.add(
-                                new Sort.Order(sortParams.getCreationDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                                new Sort.Order(
+                                        sortParams.getSortByCreationDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
                                         "creationDate"));
                     }
                     break;
                 case "doneDate":
-                    if (sortParams.getDoneDate() != null && addedFields.add("doneDate")) {
-                        orders.add(new Sort.Order(sortParams.getDoneDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                    if (sortParams.getSortByDoneDate() != null && addedFields.add("doneDate")) {
+                        orders.add(new Sort.Order(
+                                sortParams.getSortByDoneDate() ? Sort.Direction.ASC : Sort.Direction.DESC,
                                 "doneDate"));
                     }
                     break;
                 case "done":
-                    if (sortParams.getDone() != null && addedFields.add("done")) {
-                        orders.add(new Sort.Order(sortParams.getDone() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                    if (sortParams.getSortByDone() != null && addedFields.add("done")) {
+                        orders.add(new Sort.Order(sortParams.getSortByDone() ? Sort.Direction.ASC : Sort.Direction.DESC,
                                 "done"));
                     }
                     break;
                 case "assignedUser":
-                    if (sortParams.getAssignedUser() != null && addedFields.add("assignedUser")) {
+                    if (sortParams.getSortByAssignedUser() != null && addedFields.add("assignedUser")) {
                         orders.add(
-                                new Sort.Order(sortParams.getAssignedUser() ? Sort.Direction.ASC : Sort.Direction.DESC,
+                                new Sort.Order(
+                                        sortParams.getSortByAssignedUser() ? Sort.Direction.ASC : Sort.Direction.DESC,
                                         "assignedUser"));
                     }
                     break;

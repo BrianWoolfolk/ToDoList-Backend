@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.Nulls;
 import com.todo.backend.model.ToDo.Priority;
 
 import jakarta.annotation.Nullable;
+import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -31,7 +32,15 @@ public class ToDoDTO {
     private List<String> tags;
 
     @Nullable
-    @Size(min = 1, max = 50, message = "Assigned user must be between 1 and 50 characters")
     @JsonProperty("assigned_user")
+    @JsonSetter(nulls = Nulls.AS_EMPTY)
     private Optional<Optional<String>> assignedUser = Optional.empty();
+
+    public void validate() {
+        assignedUser.ifPresent(innerOpt -> innerOpt.ifPresent(user -> {
+            if (user.length() < 1 || user.length() > 50) {
+                throw new ValidationException("Assigned user must be between 1 and 50 characters");
+            }
+        }));
+    }
 }

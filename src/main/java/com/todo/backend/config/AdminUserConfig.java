@@ -1,7 +1,8 @@
 package com.todo.backend.config;
 
 import com.todo.backend.dto.UserDTO;
-import com.todo.backend.service.impl.UserServiceImpl;
+import com.todo.backend.repository.UserRepository;
+import com.todo.backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -14,8 +15,14 @@ import java.util.Set;
 @Configuration
 public class AdminUserConfig {
 
-    private final UserServiceImpl userService;
-    private final PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Value("${admin.username}")
     private String adminUsername;
@@ -23,22 +30,24 @@ public class AdminUserConfig {
     @Value("${admin.password}")
     private String adminPassword;
 
-    @Autowired
-    public AdminUserConfig(UserServiceImpl userService, PasswordEncoder passwordEncoder) {
-        this.userService = userService;
-        this.passwordEncoder = passwordEncoder;
-    }
-
     @PostConstruct
     public void init() {
-        if (userService.findByUsername(adminUsername).isEmpty()) {
+        if (userRepository.findByUsername(adminUsername).isEmpty()) {
+            System.out.println("Creating admin user");
             UserDTO adminUser = new UserDTO();
+            System.out.println(adminUsername);
             adminUser.setUsername(adminUsername);
-            adminUser.setPassword(passwordEncoder.encode(adminPassword));
+            System.out.println(adminPassword);
+            String encodedPassword = passwordEncoder.encode(adminPassword);
+            System.out.println(encodedPassword);
+            adminUser.setPassword(encodedPassword);
             Set<String> roles = new HashSet<>();
-            roles.add("ROLE_ADMIN");
+            roles.add("ADMIN");
+            roles.add("EDITOR");
+            roles.add("USER");
             adminUser.setRoles(roles);
             userService.create(adminUser);
+            System.out.println("Admin user created");
         }
     }
 }

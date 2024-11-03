@@ -13,24 +13,20 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.todo.backend.dto.UserDTO;
-import com.todo.backend.service.impl.UserServiceImpl;
+import com.todo.backend.service.UserService;
 
 import jakarta.validation.Valid;
 
 @RestController
+@RequestMapping("/api")
 public class UserController {
 
     @Autowired
-    private UserServiceImpl userService;
+    private UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody UserDTO userDTO) {
-        return userService.login(userDTO.getUsername(), userDTO.getPassword());
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        return userService.logout();
+    public ResponseEntity<?> login(@RequestParam String username, @RequestParam String password) {
+        return userService.login(username, password);
     }
 
     @Secured("ROLE_EDITOR")
