@@ -33,21 +33,17 @@ public class AdminUserConfig {
     @PostConstruct
     public void init() {
         if (userRepository.findByUsername(adminUsername).isEmpty()) {
-            System.out.println("Creating admin user");
             UserDTO adminUser = new UserDTO();
-            System.out.println(adminUsername);
-            adminUser.setUsername(adminUsername);
-            System.out.println(adminPassword);
-            String encodedPassword = passwordEncoder.encode(adminPassword);
-            System.out.println(encodedPassword);
-            adminUser.setPassword(encodedPassword);
             Set<String> roles = new HashSet<>();
+            String encodedPassword = passwordEncoder.encode(adminPassword);
+
+            adminUser.setUsername(adminUsername);
+            adminUser.setPassword(encodedPassword);
             roles.add("ADMIN");
             roles.add("EDITOR");
             roles.add("USER");
             adminUser.setRoles(roles);
             userService.create(adminUser);
-            System.out.println("Admin user created");
         }
     }
 }

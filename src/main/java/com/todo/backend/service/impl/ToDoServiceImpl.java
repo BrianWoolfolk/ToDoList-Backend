@@ -310,7 +310,6 @@ public class ToDoServiceImpl implements ToDoService {
 
         // Mark all the ToDo objects as done
         for (ToDo toDo : toDos) {
-            System.out.println(done);
             toDo.setDone(done);
         }
 

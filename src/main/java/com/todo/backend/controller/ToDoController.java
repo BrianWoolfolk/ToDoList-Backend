@@ -78,9 +78,8 @@ public class ToDoController {
             @ModelAttribute SortParams sortParams,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "true") Boolean done) {
-        System.out.println(done);
-        return toDoService.markAll(searchParams, sortParams, page, size, done);
+            @RequestParam(defaultValue = "true") boolean markAs) {
+        return toDoService.markAll(searchParams, sortParams, page, size, markAs);
     }
 
     @Secured("ROLE_EDITOR")

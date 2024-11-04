@@ -103,20 +103,16 @@ public class UserService {
     }
 
     public ResponseEntity<?> login(String username, String password) {
-        System.out.println("Login: " + username + " " + password);
-        System.out.println(passwordEncoder.encode(password));
+        if (username == null || password == null) {
+            throw new IllegalArgumentException("Username and password are required");
+        }
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        System.out.println(user);
-
-        var a = userService.loadUserByUsername(username);
-        System.out.println(a);
-
         if (passwordEncoder.matches(password, user.getPassword())) {
             // Generate JWT token
-            String token = jwtTokenUtil.generateToken(a);
+            String token = jwtTokenUtil.generateToken(userService.loadUserByUsername(username));
 
             return new ResponseEntity<>(token, HttpStatus.OK);
         }
