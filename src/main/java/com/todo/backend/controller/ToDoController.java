@@ -54,7 +54,7 @@ public class ToDoController {
     }
 
     @Secured("ROLE_EDITOR")
-    @PostMapping("/todos/{id}")
+    @PutMapping("/todos/{id}")
     public ResponseEntity<?> updateToDo(@PathVariable int id, @RequestBody ToDoDTO toDo) {
         return toDoService.update(id, toDo);
     }
@@ -78,7 +78,8 @@ public class ToDoController {
             @ModelAttribute SortParams sortParams,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "true") boolean done) {
+            @RequestParam(defaultValue = "true") Boolean done) {
+        System.out.println(done);
         return toDoService.markAll(searchParams, sortParams, page, size, done);
     }
 
